@@ -38,9 +38,6 @@
         "golang.go",
         "ms-ossdata.vscode-postgresql",
         "redhat.vscode-yaml",
-        "ms-azuretools.vscode-docker",
-        "tamasfe.even-better-toml",
-        "eamodio.gitlens"
       ]
     }
   }
