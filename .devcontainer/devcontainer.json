@@ -41,7 +41,8 @@
       },
       "extensions": [
         "golang.go",
-        "ms-ossdata.vscode-postgresql"
+        "ms-ossdata.vscode-postgresql",
+        "redhat.vscode-yaml"
       ]
     }
   }
