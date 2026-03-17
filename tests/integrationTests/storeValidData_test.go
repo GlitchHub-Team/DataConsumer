@@ -29,7 +29,7 @@ func TestStoreValidData_RealServices(t *testing.T) {
 	}()
 
 	body := mustBuildValidBody(t, sensorID, gatewayID, tenantID, string(datastorer.HeartRate), ts, payload)
-	publishAndFlush(t, h.js, subject, body)
+	publishAndFlush(t, h.jsTest, subject, body)
 
 	storedProfile, storedPayload, err := waitStoredData(h.db, tenantID, sensorID, gatewayID, ts, 10*time.Second)
 	if err != nil {

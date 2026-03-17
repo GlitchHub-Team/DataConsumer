@@ -23,7 +23,7 @@ func TestStoreData_InvalidTenantID_NotSaved(t *testing.T) {
 
 	h := setupRealPipeline(t, subject)
 	body := mustBuildValidBody(t, sensorID, gatewayID, tenantID, string(datastorer.HeartRate), ts, []byte(`{"heartRate":77}`))
-	publishAndFlush(t, h.js, subject, body)
+	publishAndFlush(t, h.jsTest, subject, body)
 
 	for _, knownTenant := range timescale.MockTenantSchemas {
 		if err := waitRowCount(h.db, knownTenant, sensorID, gatewayID, ts, 0, 5*time.Second); err != nil {

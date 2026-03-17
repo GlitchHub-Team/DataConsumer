@@ -6,14 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
-	natssever "DataConsumer/cmd/external/natsServer"
+	natsserver "DataConsumer/cmd/external/natsServer"
 	"DataConsumer/cmd/external/timescale"
 	datastorer "DataConsumer/internal/dataStorer"
 	datasubscriber "DataConsumer/internal/dataSubscriber"
-	natsutil "DataConsumer/internal/natsutil"
+	"DataConsumer/internal/natsutil"
 
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
@@ -23,37 +24,60 @@ import (
 
 type integrationPipeline struct {
 	nc       *nats.Conn
+	ncTest   *nats.Conn
 	js       jetstream.JetStream
+	jsTest   jetstream.JetStream
 	consumer jetstream.Consumer
 	db       *sql.DB
 	cancel   context.CancelFunc
 }
 
+type integrationNATSConfig struct {
+	Address       string
+	Port          int
+	CAPemPath     string
+	CredsPath     string
+	TestCredsPath string
+}
+
+func envInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return fallback
+}
+
 func setupRealPipeline(t *testing.T, subject string) *integrationPipeline {
 	t.Helper()
 
-	natsHost := getEnvOrDefault("NATS_HOST", "nats")
-	natsPort := envIntOrDefault("NATS_PORT", 4222)
+	pathToCmd := "../../cmd/"
+
+	natsAddress := natsutil.NatsAddress(os.Getenv("NATS_HOST"))
+	natsPort := natsutil.NatsPort(envInt("NATS_PORT", 4222))
+	natsCAPemPath := natsutil.NatsCAPemPath(pathToCmd + os.Getenv("DATA_CONSUMER_CA_PEM_PATH"))
+	natsCredsPath := natsutil.NatsCredsPath(pathToCmd + os.Getenv("DATA_CONSUMER_CREDS_PATH"))
+	natsTestCredsPath := natsutil.NatsCredsPath(pathToCmd + os.Getenv("DATA_CONSUMER_TEST_CREDS_PATH"))
+
 	timescaleHost := getEnvOrDefault("POSTGRES_HOST", "timescale")
 	timescalePort := envIntOrDefault("POSTGRES_PORT", 5432)
 	timescaleUser := getEnvOrDefault("POSTGRES_USER", "admin")
 	timescalePass := getEnvOrDefault("POSTGRES_PASSWORD", "admin")
 	timescaleDB := getEnvOrDefault("POSTGRES_DB", "sensor_db")
 
-	nc, err := connectNATS(natsHost, natsPort)
-	if err != nil {
-		t.Skipf("NATS non raggiungibile (%v), integrazione saltata", err)
-	}
+	nc := natsserver.NewNATSConnection(natsAddress, natsPort, natsCredsPath, natsCAPemPath)
+	ncTest := natsserver.NewNATSConnection(natsAddress, natsPort, natsTestCredsPath, natsCAPemPath)
 
-	natssever.CreateStream(nc)
-	js := natssever.NewJetStreamContext(nc)
+	js := natsserver.NewJetStreamContext(nc)
+	jsTest := natsserver.NewJetStreamContext(ncTest)
 
 	cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	_ = js.DeleteConsumer(cleanupCtx, "SENSOR_DATA_STREAM", "data-subscriber")
 	cleanupCancel()
 
 	consumerCtx, cancelConsumer := context.WithTimeout(context.Background(), 5*time.Second)
-	consumer, err := natssever.NewJetStreamConsumer(js, consumerCtx, zap.NewNop(), natssever.NatsSubject(subject))
+	consumer, err := natsserver.NewJetStreamConsumer(js, consumerCtx, zap.NewNop(), natsserver.NatsSubject(subject))
 	cancelConsumer()
 	if err != nil {
 		_ = nc.Drain()
@@ -91,7 +115,7 @@ func setupRealPipeline(t *testing.T, subject string) *integrationPipeline {
 		controller.Listen()
 	}()
 
-	p := &integrationPipeline{nc: nc, js: js, consumer: consumer, db: db, cancel: cancelPipeline}
+	p := &integrationPipeline{nc: nc, js: js, ncTest: ncTest, jsTest: jsTest, consumer: consumer, db: db, cancel: cancelPipeline}
 	t.Cleanup(func() {
 		p.cancel()
 		_ = p.nc.Drain()
@@ -102,27 +126,32 @@ func setupRealPipeline(t *testing.T, subject string) *integrationPipeline {
 	return p
 }
 
-func connectNATS(host string, port int) (*nats.Conn, error) {
-	url := fmt.Sprintf("nats://%s:%d", host, port)
-	token := os.Getenv("NATS_TOKEN")
-	seed := os.Getenv("NATS_SEED")
+func loadIntegrationNATSConfig() integrationNATSConfig {
+	pathToCmd := "../../cmd/"
+	return integrationNATSConfig{
+		Address:       string(natsutil.NatsAddress(os.Getenv("NATS_HOST"))),
+		Port:          int(natsutil.NatsPort(envInt("NATS_PORT", 4222))),
+		CAPemPath:     string(natsutil.NatsCAPemPath(pathToCmd + os.Getenv("DATA_CONSUMER_CA_PEM_PATH"))),
+		CredsPath:     string(natsutil.NatsCredsPath(pathToCmd + os.Getenv("DATA_CONSUMER_CREDS_PATH"))),
+		TestCredsPath: string(natsutil.NatsCredsPath(pathToCmd + os.Getenv("DATA_CONSUMER_TEST_CREDS_PATH"))),
+	}
+}
 
-	opts := []nats.Option{nats.Timeout(2 * time.Second)}
-	if token != "" && seed != "" {
-		opts = append(opts, natsutil.JWTAuth(token, seed))
+func ensureNATSReachable(cfg integrationNATSConfig) error {
+	options := []nats.Option{
+		natsutil.CredsFileAuth(cfg.CredsPath),
+		natsutil.CAPemAuth(cfg.CAPemPath),
+		nats.Timeout(3 * time.Second),
+		nats.MaxReconnects(0),
 	}
 
-	nc, err := nats.Connect(url, opts...)
+	nc, err := nats.Connect(fmt.Sprintf("nats://%s:%d", cfg.Address, cfg.Port), options...)
 	if err != nil {
-		return nil, err
+		return err
 	}
+	defer nc.Close()
 
-	if !nc.IsConnected() {
-		nc.Close()
-		return nil, fmt.Errorf("connessione NATS non stabilita")
-	}
-
-	return nc, nil
+	return nil
 }
 
 func buildSubject(tenantID, gatewayID, sensorID uuid.UUID) string {

@@ -44,7 +44,7 @@ func runInvalidColumnFormatTest(t *testing.T, rawJSONPattern string) {
 	defer cleanupInsertedRow(t, h.db, tenantID, sensorID, gatewayID, ts)
 
 	body := []byte(fmt.Sprintf(rawJSONPattern, sensorID, gatewayID, tenantID, ts))
-	publishAndFlush(t, h.js, subject, body)
+	publishAndFlush(t, h.jsTest, subject, body)
 
 	if err := waitRowCount(h.db, tenantID, sensorID, gatewayID, ts, 0, 5*time.Second); err != nil {
 		t.Fatalf("row should not be stored for invalid column format: %v", err)

@@ -6,7 +6,6 @@ import (
 	"flag"
 	"os"
 	"strconv"
-	"time"
 
 	natssever "DataConsumer/cmd/external/natsServer"
 	"DataConsumer/cmd/external/timescale"
@@ -15,7 +14,6 @@ import (
 	datasubscriber "DataConsumer/internal/dataSubscriber"
 	natsutil "DataConsumer/internal/natsutil"
 
-	"github.com/nats-io/nats.go/jetstream"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -44,11 +42,10 @@ func main() {
 
 		fx.Supply(natsutil.NatsAddress(os.Getenv("NATS_HOST"))),
 		fx.Supply(natsutil.NatsPort(envInt("NATS_PORT", 4222))),
-		fx.Supply(natsutil.NatsToken(os.Getenv("NATS_TOKEN"))),
-		fx.Supply(natsutil.NatsSeed(os.Getenv("NATS_SEED"))),
+		fx.Supply(natsutil.NatsCredsPath(os.Getenv("DATA_CONSUMER_CREDS_PATH"))),
+		fx.Supply(natsutil.NatsCAPemPath(os.Getenv("DATA_CONSUMER_CA_PEM_PATH"))),
 		fx.Supply(natssever.NatsSubject(*subject)),
 		fx.Supply(datasubscriber.BatchSize(*batchSize)),
-		fx.Supply(jetstream.FetchMaxWait(30*time.Second)),
 
 		fx.Provide(natssever.NewNATSConnection),
 		fx.Provide(natssever.NewJetStreamContext),

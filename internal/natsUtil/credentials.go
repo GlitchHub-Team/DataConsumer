@@ -17,3 +17,15 @@ func JWTAuth(token, seed string) nats.Option {
 		},
 	)
 }
+
+func CredsFileAuth(credsPath string) nats.Option {
+	return nats.UserCredentials(credsPath)
+}
+
+func CAPemAuth(caPemPath string) nats.Option {
+	if caPemPath == "" {
+		return func(_ *nats.Options) error { return nil }
+	}
+
+	return nats.RootCAs(caPemPath)
+}

@@ -1,4 +1,4 @@
-package natssever
+package natsserver
 
 import (
 	"context"
@@ -21,10 +21,14 @@ const (
 
 type NatsSubject string
 
-func NewNATSConnection(address natsutil.NatsAddress, port natsutil.NatsPort, token natsutil.NatsToken, seed natsutil.NatsSeed) *nats.Conn {
-	opt := natsutil.JWTAuth(string(token), string(seed))
+func NewNATSConnection(address natsutil.NatsAddress, port natsutil.NatsPort, credsPath natsutil.NatsCredsPath, caPemPath natsutil.NatsCAPemPath) *nats.Conn {
+	options := make([]nats.Option, 0, 2)
+	if string(credsPath) != "" {
+		options = append(options, natsutil.CredsFileAuth(string(credsPath)))
+	}
+	options = append(options, natsutil.CAPemAuth(string(caPemPath)))
 
-	nc, err := nats.Connect("nats://"+string(address)+":"+strconv.Itoa(int(port)), opt)
+	nc, err := nats.Connect("nats://"+string(address)+":"+strconv.Itoa(int(port)), options...)
 	if err != nil {
 		log.Fatalf("Error while connecting to NATS server: %v", err)
 	}

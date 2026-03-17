@@ -15,8 +15,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       NATS_HOST: nats
       NATS_PORT: ${NATS_PORT}
-      NATS_TOKEN: ${NATS_TOKEN}
-      NATS_SEED: ${NATS_SEED}
+      DATA_CONSUMER_CREDS_PATH: ${DATA_CONSUMER_CREDS_PATH}
+      DATA_CONSUMER_TEST_CREDS_PATH: ${DATA_CONSUMER_TEST_CREDS_PATH}
+      DATA_CONSUMER_CA_PEM_PATH: ${DATA_CONSUMER_CA_PEM_PATH}
     depends_on:
       timescale:
         condition: service_healthy
@@ -42,9 +43,33 @@ services:
 
   nats:
     image: nats:2.12.5
-    command: ["-js"]
+    command: ["-config", "/etc/nats/nats.conf"]
     ports:
-      - "4222:4222"
+      - "${NATS_PORT}:${NATS_PORT}"
+      - "${NATS_HTTP_PORT}:${NATS_HTTP_PORT}"
+    environment:
+      - "NATS_ENCRYPTION_KEY=${NATS_ENCRYPTION_KEY}"
+      - "NATS_PORT=${NATS_PORT}"
+      - "NATS_HTTP_PORT=${NATS_HTTP_PORT}"
+      - "NATS_SYS_ACCOUNT_ID=${NATS_SYS_ACCOUNT_ID}"
+      - "NATS_SENSOR_DATA_CORE_ID=${NATS_SENSOR_DATA_CORE_ID}"
+    volumes:
+      - ./nats/nats.conf:/etc/nats/nats.conf
+      - ./nats/jetstream-data:/etc/nats/data
+      - ./nats/certs:/etc/nats/certs
+      - ./nats/jwt-accounts:/etc/nats/jwt-accounts
+
+  nats-manager:
+    image: natsio/nats-box:0.19.3
+    depends_on:
+      - nats
+    volumes:
+      - ./natsManager/setup-nats.sh:/setup-nats.sh
+      - ./natsManager/ca.pem:/ca.pem
+      - ./natsManager/stream_setupper.creds:/stream_setupper.creds
+    entrypoint: ["sh", "/setup-nats.sh"]
+    environment:
+      - NATS_URL=nats://nats:${NATS_PORT}
 
 volumes:
   timescale-data:

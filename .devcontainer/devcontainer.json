@@ -5,7 +5,8 @@
   "runServices": [
     "data-consumer",
     "timescale",
-    "nats"
+    "nats",
+    "nats-manager"
   ],
   "shutdownAction": "stopCompose",
   "remoteUser": "vscode",
@@ -23,7 +24,6 @@
     }
   },
   "postCreateCommand": "bash .devcontainer/init.sh",
-  "postStartCommand": "bash .devcontainer/ensure-nats-stream.sh",
   "customizations": {
     "vscode": {
       "settings": {
