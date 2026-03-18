@@ -55,7 +55,6 @@ services:
       - "NATS_SENSOR_DATA_CORE_ID=${NATS_SENSOR_DATA_CORE_ID}"
     volumes:
       - ./nats/nats.conf:/etc/nats/nats.conf
-      - ./nats/jetstream-data:/etc/nats/data
       - ./nats/certs:/etc/nats/certs
       - ./nats/jwt-accounts:/etc/nats/jwt-accounts
 

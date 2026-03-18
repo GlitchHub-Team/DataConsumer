@@ -30,7 +30,6 @@ services:
       NATS_SENSOR_DATA_CORE_ID: ${NATS_SENSOR_DATA_CORE_ID}
     volumes:
       - ../.devcontainer/nats/nats.conf:/etc/nats/nats.conf:ro
-      - ../.devcontainer/nats/jetstream-data:/etc/nats/data
       - ../.devcontainer/nats/certs:/etc/nats/certs:ro
       - ../.devcontainer/nats/jwt-accounts:/etc/nats/jwt-accounts:ro
 
