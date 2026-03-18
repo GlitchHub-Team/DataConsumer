@@ -60,13 +60,22 @@ jobs:
             exit 1
           fi
 
+          if [ -z "${{ secrets.NATS_STREAM_SETUPPER_CREDS }}" ]; then
+            echo "::error::Missing secret NATS_STREAM_SETUPPER_CREDS"
+            exit 1
+          fi
+
           mkdir -p cmd
 
           printf '%s\n' "${{ secrets.DATA_CONSUMER_CREDS }}" > cmd/data_consumer.creds
 
           printf '%s\n' "${{ secrets.DATA_CONSUMER_TEST_CREDS }}" > cmd/admin_test.creds
 
+          mkdir -p .devcontainer/natsManager
+          printf '%s\n' "${{ secrets.NATS_STREAM_SETUPPER_CREDS }}" > .devcontainer/natsManager/stream_setupper.creds
+
           chmod 600 cmd/data_consumer.creds cmd/admin_test.creds
+          chmod 600 .devcontainer/natsManager/stream_setupper.creds
 
           if [ ! -f .devcontainer/nats/certs/server.key ]; then
             if [ -z "${{ secrets.NATS_SERVER_TLS_KEY }}" ]; then
@@ -93,10 +102,10 @@ jobs:
             exit 1
           fi
 
-          $COMPOSE_CMD -f .devcontainer/docker-compose.yml up -d nats timescale
+          $COMPOSE_CMD -f .github/docker-compose.ci.yml up -d nats timescale
 
           for _ in $(seq 1 45); do
-            if $COMPOSE_CMD -f .devcontainer/docker-compose.yml exec -T timescale pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
+            if $COMPOSE_CMD -f .github/docker-compose.ci.yml exec -T timescale pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
               break
             fi
             sleep 2
@@ -111,9 +120,11 @@ jobs:
 
           if ! (echo > /dev/tcp/127.0.0.1/"$NATS_PORT") >/dev/null 2>&1; then
             echo "::error::NATS is not reachable on 127.0.0.1:$NATS_PORT"
-            $COMPOSE_CMD -f .devcontainer/docker-compose.yml ps
+            $COMPOSE_CMD -f .github/docker-compose.ci.yml ps
             exit 1
           fi
+
+          $COMPOSE_CMD -f .github/docker-compose.ci.yml run --rm nats-manager
 
       - name: Go checks (root module)
         shell: bash
@@ -132,7 +143,7 @@ jobs:
         run: |
           set -euo pipefail
           if docker compose version >/dev/null 2>&1; then
-            docker compose -f .devcontainer/docker-compose.yml down -v
+            docker compose -f .github/docker-compose.ci.yml down -v
           elif command -v docker-compose >/dev/null 2>&1; then
-            docker-compose -f .devcontainer/docker-compose.yml down -v
+            docker-compose -f .github/docker-compose.ci.yml down -v
           fi
