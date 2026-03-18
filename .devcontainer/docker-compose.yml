@@ -24,51 +24,5 @@ services:
       nats:
         condition: service_started
 
-  timescale:
-    image: timescale/timescaledb:2.25.2-pg18
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - timescale-data:/var/lib/postgresql/data
-      - ./timescale/schema/tables.sql:/docker-entrypoint-initdb.d/01-tables.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d dataconsumer"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  nats:
-    image: nats:2.12.5
-    command: ["-config", "/etc/nats/nats.conf"]
-    ports:
-      - "${NATS_PORT}:${NATS_PORT}"
-      - "${NATS_HTTP_PORT}:${NATS_HTTP_PORT}"
-    environment:
-      - "NATS_ENCRYPTION_KEY=${NATS_ENCRYPTION_KEY}"
-      - "NATS_PORT=${NATS_PORT}"
-      - "NATS_HTTP_PORT=${NATS_HTTP_PORT}"
-      - "NATS_SYS_ACCOUNT_ID=${NATS_SYS_ACCOUNT_ID}"
-      - "NATS_SENSOR_DATA_CORE_ID=${NATS_SENSOR_DATA_CORE_ID}"
-    volumes:
-      - ./nats/nats.conf:/etc/nats/nats.conf
-      - ./nats/certs:/etc/nats/certs
-      - ./nats/jwt-accounts:/etc/nats/jwt-accounts
-
-  nats-manager:
-    image: natsio/nats-box:0.19.3
-    depends_on:
-      - nats
-    volumes:
-      - ./natsManager/setup-nats.sh:/setup-nats.sh
-      - ./natsManager/ca.pem:/ca.pem
-      - ./natsManager/stream_setupper.creds:/stream_setupper.creds
-    entrypoint: ["sh", "/setup-nats.sh"]
-    environment:
-      - NATS_URL=nats://nats:${NATS_PORT}
-
-volumes:
-  timescale-data:
+include:
+  - path: ../docker-compose.yml
