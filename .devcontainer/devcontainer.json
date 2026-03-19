@@ -1,11 +1,16 @@
 {
-  "name": "DataConsumer + TimescaleDB Dev",
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": ".."
-  },
+  "name": "DataConsumer, TimescaleDB Dev e NATS JetStream",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "data-consumer",
+  "runServices": [
+    "data-consumer",
+    "timescale",
+    "nats",
+    "nats-manager"
+  ],
+  "shutdownAction": "stopCompose",
   "remoteUser": "vscode",
-  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "workspaceFolder": "/workspaces",
   "forwardPorts": [
     4222,
     5432

@@ -1,0 +1,7 @@
+/cmd/natsStorage/*
+.devcontainer/nats/jetstream-data
+coverage.html
+coverage.out
+.devcontainer/.env
+*.creds
+*.key
