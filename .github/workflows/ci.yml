@@ -93,18 +93,32 @@ jobs:
         run: |
           set -euo pipefail
           docker compose up -d
-          echo "Attendendo il completamento del setup di NATS (nats-manager)..."
 
-          docker wait $(docker compose ps -q nats-manager)
+          echo "Recupero ID del container nats-manager..."
+          # Prendiamo l'ID subito, finché il container è in esecuzione o appena partito
+          MANAGER_ID=$(docker compose ps -q nats-manager)
 
-          EXIT_CODE=$(docker inspect $(docker compose ps -q nats-manager) --format='{{.State.ExitCode}}')
+          if [ -z "$MANAGER_ID" ]; then
+            echo "ERRORE: Impossibile trovare l'ID del container nats-manager"
+            docker compose ps
+            exit 1
+          fi
+
+          echo "Attendendo il completamento del setup di NATS (ID: $MANAGER_ID)..."
+
+          # Aspettiamo che il container finisca
+          docker wait "$MANAGER_ID"
+
+          # Ora ispezioniamo lo stato usando l'ID salvato
+          EXIT_CODE=$(docker inspect "$MANAGER_ID" --format='{{.State.ExitCode}}')
+
           if [ "$EXIT_CODE" -ne 0 ]; then
-            echo "ERRORE: Il setup di NATS è fallito!"
+            echo "ERRORE: Il setup di NATS (nats-manager) è fallito con codice $EXIT_CODE"
             docker compose logs nats-manager
             exit 1
           fi
 
-          echo "NATS Setup completato. Avvio dei test..."
+          echo "Setup NATS completato con successo (Exit Code 0). Avvio dei test..."
 
       - name: Go checks (root module)
         shell: bash
