@@ -95,7 +95,6 @@ jobs:
           docker compose up -d
 
           echo "Recupero ID del container nats-manager..."
-          # Prendiamo l'ID subito, finché il container è in esecuzione o appena partito
           MANAGER_ID=$(docker compose ps -q nats-manager)
 
           if [ -z "$MANAGER_ID" ]; then
@@ -106,10 +105,8 @@ jobs:
 
           echo "Attendendo il completamento del setup di NATS (ID: $MANAGER_ID)..."
 
-          # Aspettiamo che il container finisca
           docker wait "$MANAGER_ID"
 
-          # Ora ispezioniamo lo stato usando l'ID salvato
           EXIT_CODE=$(docker inspect "$MANAGER_ID" --format='{{.State.ExitCode}}')
 
           if [ "$EXIT_CODE" -ne 0 ]; then
@@ -135,12 +132,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if docker info >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-            docker compose -f docker-compose.yml down -v
-          elif docker info >/dev/null 2>&1 && command -v docker-compose >/dev/null 2>&1; then
-            docker-compose -f docker-compose.yml down -v
-          elif sudo -n docker info >/dev/null 2>&1 && sudo -n docker compose version >/dev/null 2>&1; then
-            sudo -n docker compose -f docker-compose.yml down -v
-          elif sudo -n docker info >/dev/null 2>&1 && sudo -n docker-compose version >/dev/null 2>&1; then
-            sudo -n docker-compose -f docker-compose.yml down -v
-          fi
+          docker compose down -v
