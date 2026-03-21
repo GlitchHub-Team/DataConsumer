@@ -61,15 +61,15 @@ jobs:
             exit 1
           fi
 
-          if [ -z "${{ secrets.DATA_CONSUMER_TEST_CREDS }}" ]; then
-            echo "::error::Missing secret DATA_CONSUMER_TEST_CREDS"
+          if [ -z "${{ secrets.TEST_CREDS }}" ]; then
+            echo "::error::Missing secret TEST_CREDS"
             exit 1
           fi
 
           mkdir -p cmd
 
           printf '%s\n' "${{ secrets.DATA_CONSUMER_CREDS }}" > cmd/data_consumer.creds
-          printf '%s\n' "${{ secrets.DATA_CONSUMER_TEST_CREDS }}" > cmd/admin_test.creds
+          printf '%s\n' "${{ secrets.TEST_CREDS }}" > cmd/admin_test.creds
 
           chmod 600 cmd/data_consumer.creds cmd/admin_test.creds
 
