@@ -29,7 +29,7 @@ jobs:
       CLOUD_POSTGRES_DB: ${{ vars.CLOUD_POSTGRES_DB }}
       CLOUD_POSTGRES_USER: ${{ secrets.CLOUD_POSTGRES_USER }}
       CLOUD_POSTGRES_PASSWORD: ${{ secrets.CLOUD_POSTGRES_PASSWORD }}
-      GATEWAY_BASE_CREDS_PATH: base.creds
+      DATA_CONSUMER_CREDS_PATH: data_consumer.creds
       TEST_CREDS_PATH: admin_test.creds
       CA_PEM_PATH: ca.pem
 
