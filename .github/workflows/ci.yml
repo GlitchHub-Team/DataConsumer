@@ -50,6 +50,8 @@ jobs:
         with:
           NATS_STREAM_SETUPPER_CREDS: ${{ secrets.NATS_STREAM_SETUPPER_CREDS }}
           NATS_SERVER_TLS_KEY: ${{ secrets.NATS_SERVER_TLS_KEY }}
+          GATEWAY1_CREDS: ${{ secrets.GATEWAY1_CREDS }}
+          GATEWAY2_CREDS: ${{ secrets.GATEWAY2_CREDS }}
 
       - name: Init integration credentials
         shell: bash
