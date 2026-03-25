@@ -11,18 +11,6 @@
   "shutdownAction": "stopCompose",
   "remoteUser": "vscode",
   "workspaceFolder": "/workspaces",
-  "forwardPorts": [
-    4222,
-    5432
-  ],
-  "portsAttributes": {
-    "4222": {
-      "label": "NATS"
-    },
-    "5432": {
-      "label": "TimescaleDB"
-    }
-  },
   "postCreateCommand": "bash .devcontainer/init.sh",
   "customizations": {
     "vscode": {
